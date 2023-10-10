@@ -15,4 +15,10 @@ CHIP DMux {
 
     PARTS:
     // Put your code here:
+		// a
+		Not(in=sel, out=notsel);
+		And(a=in, b=notsel, out=a);
+
+		// b
+		And(a=in, b=sel, out=b);
 }
