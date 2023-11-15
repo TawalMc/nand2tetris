@@ -71,16 +71,14 @@ CHIP ALU {
 	 Mux16(a=xandy, b=xaddy, sel=f, out=xcomputey);
 
 	 // if (no == 1) set out = !out
+	 // if (out < 0) set ng = 1
 	 Not16(in=xcomputey, out=notxcomputey);
 	 Mux16(a=xcomputey, b=notxcomputey, 
-	 			sel=no, out=out, out[0..7]=out1, out[8..15]=out2, out[15]=pin15);
+	 			sel=no, out=out, out[0..7]=out1, out[8..15]=out2, out[15]=ng);
 
 	 // if (out == 0) set zr = 1
 	 Or8Way(in=out1, out=orout1);
 	 Or8Way(in=out2, out=orout2);
 	 Or(a=orout1, b=orout2, out=orout8way);
 	 Mux(a=true, b=false, sel=orout8way, out=zr);
-   
-	 // if (out < 0) set ng = 1
-	 Mux(a=false, b=true, sel=pin15, out=ng);
 }
