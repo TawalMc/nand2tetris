@@ -45,7 +45,7 @@ CHIP ALU {
    // Put you code here:
 
 	 // if (zx == 1) set x = 0 
-	 And16(a=x, b[0]=false, out=andx0);
+	 And16(a=x, b=false, out=andx0);
 	 Mux16(a=x, b=andx0, sel=zx, out=zxx0);
 	
 	 // if (nx == 1) set x = !x
@@ -53,7 +53,7 @@ CHIP ALU {
 	 Mux16(a=zxx0, b=notx, sel=nx, out=nxnotx);
 
 	 // if (zy == 1) set y = 0
-	 And16(a=y, b[0]=false, out=andy0);
+	 And16(a=y, b=false, out=andy0);
 	 Mux16(a=y, b=andy0, sel=zy, out=zyy0);
    
 	 // if (ny == 1) set y = !y
@@ -72,14 +72,15 @@ CHIP ALU {
 
 	 // if (no == 1) set out = !out
 	 Not16(in=xcomputey, out=notxcomputey);
-	 Mux16(a=xcomputey, b=notxcomputey, sel=no, out=out);
+	 Mux16(a=xcomputey, b=notxcomputey, 
+	 			sel=no, out=out, out[0..7]=out1, out[8..15]=out2, out[15]=pin15);
 
 	 // if (out == 0) set zr = 1
-	 Or8Way(in=out[0..7], out=orout1);
-	 Or8Way(in=out[8..15], out=orout2);
-	 Or(a=orout1, b=orout2, out=orout);
-	 Mux(a=true, b=false, sel=orout, out=zr);
+	 Or8Way(in=out1, out=orout1);
+	 Or8Way(in=out2, out=orout2);
+	 Or(a=orout1, b=orout2, out=orout8way);
+	 Mux(a=true, b=false, sel=orout8way, out=zr);
    
 	 // if (out < 0) set ng = 1
-	 
+	 Mux(a=false, b=true, sel=pin15, out=ng);
 }
