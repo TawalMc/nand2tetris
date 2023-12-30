@@ -17,4 +17,17 @@ CHIP PC {
 
     PARTS:
     // Put your code here:
+		
+		/**
+		Mux4Way16(a=outdefault, 
+			b=false, 
+			c=outic, 
+			sel[0]=reset, 
+			sel[1]=inc, 
+			out=out);
+		*/
+		Mux16(a=in, b=false, sel=reset, out=outreset);
+		Inc16(in=outreset out=outic);		
+		Register(in=outic, load=load, out=outregister);
+		Mux16(a=outregister, b=outic, sel=inc, out=out);
 }
