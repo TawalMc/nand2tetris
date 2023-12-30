@@ -11,23 +11,42 @@
 
 // Put your code here.
 
-// init constants
+// init constant and memories
 @R2
 M=0
 @i
 M=0
+// we'll check what operand is greater so we can iterate over the lesser by adding the greater to itself
+// so we suppose here that R0 <= R1
+@R0
+D=M
+@iter
+M=D
+
+@R1
+D=M
+@base
+M=D
+
+// check if R0 > R1
+@R1
+D=M
+@R0
+D=M-D
+@CHNG_TEMP
+D;JGT
 
 (LOOP)
-	// if (i = iter) goto STOP
-	@R1
+	// if (i = iter) goto END
+	@iter
 	D=M
 	@i
 	D=M-D
-	@STOP
+	@END
 	D;JEQ
 
-	// R2 = R2 + R0 
-	@R0
+	// R2 = R2 + base 
+	@base
 	D=M
 	@R2
 	M=M+D
@@ -40,9 +59,20 @@ M=0
 	@LOOP
 	0;JMP
 
-(STOP)
-	// @END
-	// 0;JMP
+// here that R1 > R0
+(CHNG_TEMP)
+	@R1
+	D=M
+	@iter
+	M=D
+
+	@R0
+	D=M
+	@base
+	M=D
+
+	@LOOP
+	0;JMP
 
 (END)
 	@END
