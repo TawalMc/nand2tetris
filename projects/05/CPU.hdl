@@ -40,4 +40,22 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+		
+		// Instruction handling
+		Mux16(a=instruction, b=aluout, sel=instruction[15], out=outmux1)
+		Register(in=outmux1 ,load=instruction[15] ,out=outreg1)
+
+		// ALU output
+		Register(in=aluout ,load= ,out= outreg2)
+		ALU(
+			x=outreg2,
+			y=outmux2,
+			zx=instruction[11] ,
+			nx=instruction[10] ,
+			zy=instruction[9] ,
+			ny=instruction[8] ,
+			f=instruction[7] ,
+			no=instruction[6] ,
+			out=aluout, out=outM ,zr= ,ng= )
+		Mux16(a=inM, b=outreg1, sel=instruction[12], out=outmux2)
 }
