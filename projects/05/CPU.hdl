@@ -42,13 +42,14 @@ CHIP CPU {
     // Put your code here:
 		
 		// Instruction handling
-		Mux16(a=instruction, b=aluout, sel=instruction[15], out=outmux1)
-		Register(in=outmux1 ,load=instruction[15] ,out=outreg1)
+		Mux16(a=instruction, b=aluout, sel=instruction[15], out=outmux1); /* Mux instruction */
+		Register(in=outmux1 ,load=instruction[5] ,out=outrega);	/* A register */
 
 		// ALU output
-		Register(in=aluout ,load= ,out= outreg2)
+		Register(in=aluout ,load=instruction[4] ,out= outregd); /* D register */
+		Mux16(a=inM, b=outrega, sel=instruction[12], out=outmux2);
 		ALU(
-			x=outreg2,
+			x=outregd,
 			y=outmux2,
 			zx=instruction[11] ,
 			nx=instruction[10] ,
@@ -56,6 +57,59 @@ CHIP CPU {
 			ny=instruction[8] ,
 			f=instruction[7] ,
 			no=instruction[6] ,
-			out=aluout, out=outM ,zr= ,ng= )
-		Mux16(a=inM, b=outreg1, sel=instruction[12], out=outmux2)
+			out=aluout, 
+			out=outM ,
+			zr=outzr,
+			ng=outng);
+		And(a=instruction[13], b=true, out=writeM);
+
+		// Control - Next instructions
+		DMux8Way(
+			in=true, sel=instruction[0..2],
+			a=null, b=jgt, c=jeq, d=jge, 
+			e=jlt, f=jne, g=jle, h=jmp
+		); /* jump instruction */
+
+		DMux4Way(
+			in=true, sel[0]=zr, sel[1]=ng, 
+			a=allzero, b=zerone, c=onezero, d=oneone
+		); /* zr and ng */
+
+		// jumps condition
+		// JGT
+		And(a=jgt, b=allzero, out=JGT);
+		
+		// JEQ
+		Or(a=onezero, b=oneone, out=jeq1);
+		And(a=jeq, b=jeq1, out=JEQ);
+
+		// JGE
+		Or(a=allzero, b=onezero, out=jge1);
+		And(a=jge, b=jge1, out=JGE);
+
+		// JLT
+		And(a=jlt, b=zerone, out=JLT);
+
+		// JNE
+		Or(a=allzero, b=zerone, out=jne1);
+		And(a=jne, b=jne1, out=JNE);
+
+		// JLE
+		Or(a=zerone, b=oneone, out=jle1);
+		And(a=jle, b=jle1, out=JLE);
+
+		// J(j1,j2,j3,zr,ng)
+		Or8Way(
+			in[0]=false,
+			in[1]=JGT,
+			in[2]=JEQ,
+			in[3]=JGE,
+			in[4]=JLT,
+			in[5]=JNE,
+			in[6]=JLE,
+			in[7]=JMP,
+			out=jump
+		); /* jump decision
+
+		PC(in=outrega ,load=jump ,inc=null ,reset=reset ,out=pc);
 }
