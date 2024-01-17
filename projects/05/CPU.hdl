@@ -43,11 +43,17 @@ CHIP CPU {
 		
 		// Instruction handling
 		Mux16(a=instruction, b=aluout, sel=instruction[15], out=outmux1); /* Mux instruction */
-		Register(in=outmux1 ,load=instruction[5] ,out=outrega);	/* A register */
+		
+		Mux(a=true, b=instruction[5], sel=instruction[15], out=loada);
+		ARegister(in=outmux1 ,load=loada ,out=outrega, out[0..14]=addressM);	/* A register */
 
 		// ALU output
-		Register(in=aluout ,load=instruction[4] ,out= outregd); /* D register */
-		Mux16(a=inM, b=outrega, sel=instruction[12], out=outmux2);
+		And(a=instruction[4], b=instruction[15], out=loadd);
+		DRegister(in=aluout ,load=loadd ,out= outregd); /* D register */
+		
+		And(a=instruction[12], b=instruction[15], out=mux2sel);
+		Mux16(a=outrega, b=inM, sel=mux2sel, out=outmux2);
+		
 		ALU(
 			x=outregd,
 			y=outmux2,
@@ -61,7 +67,7 @@ CHIP CPU {
 			out=outM ,
 			zr=outzr,
 			ng=outng);
-		And(a=instruction[13], b=true, out=writeM);
+		And(a=instruction[3], b=instruction[15], out=writeM);
 
 		// Control - Next instructions
 		DMux8Way(
@@ -71,7 +77,7 @@ CHIP CPU {
 		); /* jump instruction */
 
 		DMux4Way(
-			in=true, sel[0]=zr, sel[1]=ng, 
+			in=true, sel[0]=outzr, sel[1]=outng, 
 			a=allzero, b=zerone, c=onezero, d=oneone
 		); /* zr and ng */
 
@@ -100,16 +106,18 @@ CHIP CPU {
 
 		// J(j1,j2,j3,zr,ng)
 		Or8Way(
-			in[0]=false,
+			in[0]=false, // soit Insctruction
 			in[1]=JGT,
 			in[2]=JEQ,
 			in[3]=JGE,
 			in[4]=JLT,
 			in[5]=JNE,
 			in[6]=JLE,
-			in[7]=JMP,
+			in[7]=jmp,
 			out=jump
-		); /* jump decision
+		); /* jump decision */
 
-		PC(in=outrega ,load=jump ,inc=null ,reset=reset ,out=pc);
+		Not(in=jump, out=increment);
+		Or(a=null, b=preinc, out=inc1);
+		PC(in=outrega ,load=jump ,inc=inc1, reset=reset, out[0..14]=pc);		
 }
