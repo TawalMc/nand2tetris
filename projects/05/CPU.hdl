@@ -25,6 +25,20 @@
  * than to the address resulting from executing the current instruction. 
  */
 
+/**
+Tawaliou's comments:
+ 1- We've two types of instructions:
+		- A-instruction (addressing): load memory location
+		- c-instruction (computation): check, compute, jump
+	So we need to ensure at each step we're doing an A-instruction
+	or C-instruction and based on this result we do appropirate operation 
+	by checking against "instruction[15]"
+	ex: in case of A-instruction we must always load data in ARegister so 
+	if instruction[15]=0 then the pin load of ARegister must be set to true
+
+ 2-   
+*/
+
 CHIP CPU {
 
     IN  inM[16],         // M value input  (M = contents of RAM[A])
@@ -54,6 +68,7 @@ CHIP CPU {
 		And(a=instruction[12], b=instruction[15], out=mux2sel);
 		Mux16(a=outrega, b=inM, sel=mux2sel, out=outmux2);
 		
+		// A-instruction fo pin 11..6
 		ALU(
 			x=outregd,
 			y=outmux2,
@@ -67,41 +82,48 @@ CHIP CPU {
 			out=outM ,
 			zr=outzr,
 			ng=outng);
-		And(a=instruction[3], b=instruction[15], out=writeM);
 
+		And(a=instruction[3], b=instruction[15], out=writeM);
+ 
 		// Control - Next instructions
+		And(a=instruction[0], b=instruction[15], out=j3);
+		And(a=instruction[1], b=instruction[15], out=j2);
+		And(a=instruction[2], b=instruction[15], out=j1);
 		DMux8Way(
-			in=true, sel=instruction[0..2],
+			in=true, sel[0]=j3, sel[1]=j2, sel[2]=j1,
 			a=null, b=jgt, c=jeq, d=jge, 
 			e=jlt, f=jne, g=jle, h=jmp
 		); /* jump instruction */
 
 		DMux4Way(
-			in=true, sel[0]=outzr, sel[1]=outng, 
+			in=true, sel[0]=outng, sel[1]=outzr, 
 			a=allzero, b=zerone, c=onezero, d=oneone
 		); /* zr and ng */
 
 		// jumps condition
+		Not(in=outzr, out=notoutzr);
+		Not(in=outng, out=notoutng);
+
 		// JGT
-		And(a=jgt, b=allzero, out=JGT);
+		And(a=notoutng, b=notoutzr, out=jgt1);
+		And(a=jgt, b=jgt1, out=JGT);
 		
 		// JEQ
-		Or(a=onezero, b=oneone, out=jeq1);
-		And(a=jeq, b=jeq1, out=JEQ);
+		And(a=jeq, b=outzr, out=JEQ);
 
-		// JGE
-		Or(a=allzero, b=onezero, out=jge1);
+		// JGE // come back here
+		Or(a=outzr, b=notoutng, out=jge1);
 		And(a=jge, b=jge1, out=JGE);
 
 		// JLT
-		And(a=jlt, b=zerone, out=JLT);
+		And(a=outng, b=notoutzr, out=jlt1);
+		And(a=jlt, b=jlt1, out=JLT);
 
 		// JNE
-		Or(a=allzero, b=zerone, out=jne1);
-		And(a=jne, b=jne1, out=JNE);
+		And(a=jne, b=notoutzr, out=JNE);
 
 		// JLE
-		Or(a=zerone, b=oneone, out=jle1);
+		Or(a=outzr, b=outng, out=jle1);
 		And(a=jle, b=jle1, out=JLE);
 
 		// J(j1,j2,j3,zr,ng)
@@ -117,7 +139,5 @@ CHIP CPU {
 			out=jump
 		); /* jump decision */
 
-		Not(in=jump, out=increment);
-		Or(a=null, b=preinc, out=inc1);
-		PC(in=outrega ,load=jump ,inc=inc1, reset=reset, out[0..14]=pc);		
+		PC(in=outrega ,load=jump ,inc=true, reset=reset, out[0..14]=pc);		
 }
