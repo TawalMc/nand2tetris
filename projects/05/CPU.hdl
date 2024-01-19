@@ -85,7 +85,7 @@ CHIP CPU {
 
 		And(a=instruction[3], b=instruction[15], out=writeM);
  
-		// Control - Next instructions
+		// Control bits - Next instructions
 		And(a=instruction[0], b=instruction[15], out=j3);
 		And(a=instruction[1], b=instruction[15], out=j2);
 		And(a=instruction[2], b=instruction[15], out=j1);
@@ -95,12 +95,7 @@ CHIP CPU {
 			e=jlt, f=jne, g=jle, h=jmp
 		); /* jump instruction */
 
-		DMux4Way(
-			in=true, sel[0]=outng, sel[1]=outzr, 
-			a=allzero, b=zerone, c=onezero, d=oneone
-		); /* zr and ng */
-
-		// jumps condition
+		/* jumps conditions */
 		Not(in=outzr, out=notoutzr);
 		Not(in=outng, out=notoutng);
 
