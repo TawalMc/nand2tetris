@@ -14,15 +14,12 @@ class LoadTables:
         table = []
         for line in file:
             _line = line.split(" ")
-            c = 0
             matching = []
             for l in _line:
-                if c < columns:
-                    matching.append(re.sub(r"\s+", "", l))
-                table.append(matching)
-                c += 1
+              matching.append(re.sub(r"\s+", "", l))
+            table.append(matching)
         file.close()
         return table
 
-    def load_symbol_table(self, path: str):
+    def load_symbol_table(self, path: str) -> None :
         self.symbol_table = self.load_table(path, 2)
