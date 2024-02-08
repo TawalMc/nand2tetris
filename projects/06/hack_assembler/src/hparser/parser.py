@@ -9,9 +9,7 @@ class Parser:
     self.jump = ""
   
   def display_instruction_parts(self):
-    print(f"comp: {self.comp}")
-    print(f"dest: {self.dest}")
-    print(f"jump: {self.jump}")
+    print(f"{self.dest}={self.comp};{self.jump}")
   
   def parse(self, line: str):
     instruction = line.split(";")
