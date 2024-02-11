@@ -1,21 +1,26 @@
 import re
+import sys
 from tables import LoadTables, SymbolTable
 from hparser import Parser
-from utils import read_prog
+from hcode import Code
+from utils import read_prog, represents_int
+import os
 
-progs = [
-    "/home/tawaliou/Documents/apps/nand2tetris/projects/04/fill/Fill.asm",
-]
+def get_file_full_path(relative_path: str) -> str:
+  absolute_path = os.path.dirname(__file__)
+  return os.path.join(absolute_path, relative_path)
 
 tables = [
-    "/home/tawaliou/Documents/apps/nand2tetris/projects/06/hack_assembler/src/tables/symbol_table.txt",
-    "/home/tawaliou/Documents/apps/nand2tetris/projects/06/hack_assembler/src/tables/comp_table.txt",
-    "/home/tawaliou/Documents/apps/nand2tetris/projects/06/hack_assembler/src/tables/dest_table.txt",
-    "/home/tawaliou/Documents/apps/nand2tetris/projects/06/hack_assembler/src/tables/jump_table.txt",
+    get_file_full_path("tables/symbol_table.txt"),
+    get_file_full_path("tables/comp_table.txt"),
+    get_file_full_path("tables/dest_table.txt"),
+    get_file_full_path("tables/jump_table.txt"),
 ]
 
-
 def main():
+    in_file = sys.argv[1]
+    out_file = sys.argv[2]
+  
     load_tables = LoadTables(symbol_path=tables[0], 
                              comp_path=tables[1],
                              dest_path=tables[2],
@@ -23,15 +28,18 @@ def main():
                              )
     
     symbols_table = SymbolTable(load_tables.symbol_table)
+    
+    code = Code(load_tables.dest_table, load_tables.comp_table, load_tables.jump_table)
 
-    program = read_prog(progs[0])
-
+    program = read_prog(in_file)
+    # print(program)
     prog_index=0
     for instruction in program:
       if instruction.startswith("("):
+        prog_index -= 1 
         symbol = re.sub(r'[\(\)]', "", instruction)
         if not symbols_table.contains(symbol):
-          symbols_table.add_entry(symbol, prog_index + 1) 
+          symbols_table.add_entry(symbol, prog_index + 1)
       prog_index += 1
       
     binary_code = []
@@ -40,22 +48,27 @@ def main():
       if not instruction.startswith("("):
           if instruction.startswith("@"):
             symbol = instruction.replace("@", "")
-            addr = symbols_table.get_address(symbol)
-            if addr:
-              binary_code.append(f"0{format((int(addr)), '015b')}")
+            if represents_int(symbol):
+              addr = int(symbol)
             else:
-              symbols_table.add_entry(symbol, n)
-              binary_code.append(f"0{format((int(n)), '015b')}")
-              n+=1 
+              addr = symbols_table.get_address(symbol)
+        
+              if not addr:
+               addr = n
+               symbols_table.add_entry(symbol, n)
+               n+=1
+               
+            binary_code.append(f"{format((int(addr)), '016b')}") 
           else:
             parser = Parser()
             parser.parse(instruction)
-            parser.display_instruction_parts()
-            binary_code.append(f"0{format((int('0')), '015b')}")
-        
-    # print(binary_code)
+            binary_code.append(code.binary_code(parser.dest, parser.comp, parser.jump))
+    
+    # print(symbols_table.symbols)
+    # with open(out_file, "w+") as writer:
+    #   for b in binary_code:    
+    #     writer.write(f"{b}\n")
 
-    pass
 
 
 if __name__ == "__main__":

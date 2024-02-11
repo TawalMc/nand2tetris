@@ -1,6 +1,6 @@
 import re
 from typing import List
-
+import os
 
 def read_prog(file: str) -> List[str]:
     """
@@ -17,3 +17,11 @@ def read_prog(file: str) -> List[str]:
                 prog_table.append(code)
     prog.close()
     return prog_table
+
+def represents_int(s):
+    try: 
+        int(s)
+    except ValueError:
+        return False
+    else:
+        return True

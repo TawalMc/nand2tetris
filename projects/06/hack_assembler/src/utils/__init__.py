@@ -1,1 +1,1 @@
-from .utils import read_prog
+from .utils import read_prog, represents_int
