@@ -62,12 +62,13 @@ def main():
           else:
             parser = Parser()
             parser.parse(instruction)
+            # print(instruction, parser.dest or None, parser.comp or None, parser.jump or None)
             binary_code.append(code.binary_code(parser.dest, parser.comp, parser.jump))
     
-    # print(symbols_table.symbols)
-    # with open(out_file, "w+") as writer:
-    #   for b in binary_code:    
-    #     writer.write(f"{b}\n")
+    print(symbols_table.symbols)
+    with open(out_file, "w+") as writer:
+      for b in binary_code:    
+        writer.write(f"{b}\n")
 
 
 
