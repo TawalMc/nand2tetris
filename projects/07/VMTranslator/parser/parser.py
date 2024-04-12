@@ -31,3 +31,6 @@ class Parser:
 
     def arg2(self) -> str:
         return self.current_command.split()[2]
+
+    def close(self):
+        self.file.close()
