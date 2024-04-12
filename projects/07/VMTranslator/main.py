@@ -1,3 +1,4 @@
+from parser.constants import C_ARITHMETIC, C_RETURN
 from parser.parser import Parser
 
 if __name__ == '__main__':
@@ -7,6 +8,7 @@ if __name__ == '__main__':
         command = parser.command_type()
         if not command:
             continue
-        print(command)
+        if command != C_RETURN:
+            print("ar:", parser.arg1())
 
     pass
