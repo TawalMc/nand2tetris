@@ -1,6 +1,6 @@
 from typing import Optional
 
-from parser.constants import commands, C_ARITHMETIC
+from constants import commands, C_ARITHMETIC
 
 
 class Parser:
@@ -26,7 +26,7 @@ class Parser:
 
     def arg1(self) -> str:
         if self.command_type() == C_ARITHMETIC:
-            return self.current_command
+            return self.current_command.split()[0]
         return self.current_command.split()[1]
 
     def arg2(self) -> str:
