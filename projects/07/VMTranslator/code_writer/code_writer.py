@@ -1,3 +1,5 @@
+import os
+
 from constants import TEMP_ADDR
 
 
@@ -68,6 +70,7 @@ class CodeWriter:
     def __init__(self, file_path: str):
         self.__count_ari_inst = 0
         self.__file = open(file_path, 'w+')
+        self.__file_name = os.path.splitext(os.path.basename(file_path))[0]
 
     def write_arithmetic(self, command):
         instructions = arithmetic_operations(command, self.__count_ari_inst)
@@ -75,8 +78,10 @@ class CodeWriter:
             self.__file.write(f"{inst}\n")
         self.__count_ari_inst += 1
 
-    def write_push_pop(self):
-        pass
+    def write_push_pop(self, command: str, segment: str, index_or_value: int):
+        instructions = push_pop_operations(self.__file_name, command, segment, index_or_value)
+        for inst in instructions:
+            self.__file.write(f"{inst}\n")
 
     def close(self):
         self.__file.close()
