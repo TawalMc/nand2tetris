@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 from constants import TEMP_ADDR
 
@@ -66,13 +67,22 @@ def push_pop_operations(file_name: str, command: str, segment: str, index_or_val
     return operations.get(segment, {}).get(command, [])
 
 
+def branching_operations(command: str, symbol: str, func_stack: List[str], n_args_or_vars: int = None):
+    operations = {
+        "label": [f"({func_stack.pop() + '$' if len(func_stack) > 0 else ''}{symbol})"],
+    }
+
+    return operations.get(command, [])
+
+
 class CodeWriter:
     def __init__(self, file_path: str):
         self.__count_ari_inst = 0
         self.__file = open(file_path, 'w+')
         self.__file_name = os.path.splitext(os.path.basename(file_path))[0]
+        self.__func_stack = []
 
-    def write_arithmetic(self, command):
+    def write_arithmetic(self, command: str):
         instructions = arithmetic_operations(command, self.__count_ari_inst)
         for inst in instructions:
             self.__file.write(f"{inst}\n")
@@ -80,6 +90,14 @@ class CodeWriter:
 
     def write_push_pop(self, command: str, segment: str, index_or_value: int):
         instructions = push_pop_operations(self.__file_name, command, segment, index_or_value)
+        for inst in instructions:
+            self.__file.write(f"{inst}\n")
+
+    # def write_branching(self, command: str, symbol: str, n_args_or_vars: int = None):
+    #     pass
+
+    def write_label(self, command: str, symbol: str):
+        instructions = branching_operations(command, symbol, self.__func_stack)
         for inst in instructions:
             self.__file.write(f"{inst}\n")
 

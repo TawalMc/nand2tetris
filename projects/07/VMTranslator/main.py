@@ -2,7 +2,7 @@ import os
 import sys
 
 from code_writer.code_writer import CodeWriter
-from constants import C_ARITHMETIC, C_POP, C_PUSH
+from constants import C_ARITHMETIC, C_PUSH, C_POP
 from parser.parser import Parser
 
 if __name__ == '__main__':
@@ -22,10 +22,17 @@ if __name__ == '__main__':
         command_type = parser.command_type()
         if not command_type:
             continue
+
         if command_type == C_ARITHMETIC:
             writer.write_arithmetic(parser.arg1())
         elif command_type in [C_PUSH, C_POP]:
-            writer.write_push_pop({C_PUSH: "push", C_POP: "pop"}[command_type], parser.arg1(), int(parser.arg2()))
+            writer.write_push_pop(parser.command(), parser.arg1(), int(parser.arg2()))
+        # # elif command_type in [C_GOTO, C_IF, C_FUNCTION, C_CALL, C_RETURN]:
+        # #     pass
+        else:
+            writer.write_label(parser.command(), parser.arg1())
+        #     # print(f"{parser.current_command}: {parser.command()} - {parser.arg1()}")
+        # print(f"{parser.current_command}: {parser.command()} - {parser.arg1()} - {parser.arg2()}")
 
     parser.close()
     writer.close()

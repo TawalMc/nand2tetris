@@ -24,13 +24,16 @@ class Parser:
         cmd_start = self.current_command.split()[0] if self.current_command.split() else None
         return commands.get(cmd_start, None)
 
+    def command(self) -> Optional[str]:
+        return self.current_command.split()[0] if self.current_command.split() else None
+
     def arg1(self) -> str:
         if self.command_type() == C_ARITHMETIC:
             return self.current_command.split()[0]
         return self.current_command.split()[1]
 
     def arg2(self) -> str:
-        return self.current_command.split()[2]
+        return self.current_command.split()[2] if len(self.current_command.split()) > 2 else None
 
     def close(self):
         self.file.close()
