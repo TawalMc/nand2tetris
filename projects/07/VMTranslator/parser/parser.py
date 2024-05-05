@@ -1,6 +1,6 @@
 from typing import Optional
 
-from constants import commands, C_ARITHMETIC
+from constants import commands, C_ARITHMETIC, C_RETURN
 
 
 class Parser:
@@ -28,12 +28,13 @@ class Parser:
         return self.current_command.split()[0] if self.current_command.split() else None
 
     def arg1(self) -> str:
-        if self.command_type() == C_ARITHMETIC:
+        if self.command_type() in [C_ARITHMETIC, C_RETURN]:
             return self.current_command.split()[0]
         return self.current_command.split()[1]
 
     def arg2(self) -> str:
-        return self.current_command.split()[2] if len(self.current_command.split()) > 2 else None
+        # return self.current_command.split()[2] if len(self.current_command.split()) > 2 else None
+        return self.current_command.split()[2]
 
     def close(self):
         self.file.close()
