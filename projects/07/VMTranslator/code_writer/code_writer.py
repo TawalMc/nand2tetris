@@ -79,19 +79,19 @@ def branching_operations(command: str,
         "goto": [f"@{label_prefix}{symbol}", "0;JMP"],
         "if-goto": ["@SP", "A=M-1", "D=M", "@SP", "M=M-1", f"@{label_prefix}{symbol}", "D;JNE"],
         "function": [f"({symbol})", f"@{symbol}$i", "M=0", f"({symbol}$LOOP_{count})", f"@{n_args_or_vars}", "D=A",
-                     f"@{symbol}.i", "D=M-D", f"@{symbol}$END_LOOP_{count}", "D;JLE", "@SP", "A=M", "M=0", "@SP",
+                     f"@{symbol}$i", "D=D-M", f"@{symbol}$END_LOOP_{count}", "D;JLE", "@SP", "A=M", "M=0", "@SP",
                      "M=M+1", f"@{symbol}$i", "M=M+1", f"@{symbol}$LOOP_{count}", "0; JMP",
                      f"({symbol}$END_LOOP_{count})"],
         "return": ["@LCL", "D=M", f"@{label_prefix}END_FRAME", "M=D", "@5", "D=A", f"@{label_prefix}END_FRAME", "A=M-D",
                    "D=M",
                    f"@{label_prefix}RET_ADDR", "M=D",
-                   "@SP", "A=M", "D=M", "@ARG", "A=M", "M=D", "@1", "D=A", f"@{label_prefix}END_FRAME", "A=M-D", "D=M",
+                   "@SP", "A=M-1", "D=M", "@ARG", "A=M", "M=D", "@SP", "M=M-1", "@1", "D=A", "@ARG", "D=M+D", "@SP",
+                   "M=D", "@1", "D=A", f"@{label_prefix}END_FRAME", "A=M-D", "D=M",
                    "@THAT", "M=D",
-                   "@1", "D=A", f"@{label_prefix}END_FRAME", "A=M-D", "D=M", "@THIS", "M=D", "@3", "D=A",
+                   "@2", "D=A", f"@{label_prefix}END_FRAME", "A=M-D", "D=M", "@THIS", "M=D", "@3", "D=A",
                    f"@{label_prefix}END_FRAME", "A=M-D", "D=M",
                    "@ARG", "M=D", "@4", "D=A", f"@{label_prefix}END_FRAME", "A=M-D", "D=M", "@LCL", "M=D",
-                   f"@{label_prefix}RET_ADDR",
-                   "0;JMP"]
+                   f"@{label_prefix}RET_ADDR", "A=M", "0;JMP"]
 
     }
 

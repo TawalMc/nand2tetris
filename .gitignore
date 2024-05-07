@@ -188,3 +188,5 @@ fabric.properties
 *.dat
 bin/
 tools/bin/CPU Emulator.dat
+tools/bin/CPU Emulator.dat
+tools/bin/Virtual Machine Emulator.dat

@@ -4,8 +4,8 @@ M=0
 (SimpleFunction.test$LOOP_0)
 @2
 D=A
-@SimpleFunction.test.i
-D=M-D
+@SimpleFunction.test$i
+D=D-M
 @SimpleFunction.test$END_LOOP_0
 D;JLE
 @SP
@@ -94,10 +94,18 @@ D=M
 @SimpleFunction.test$RET_ADDR
 M=D
 @SP
-A=M
+A=M-1
 D=M
 @ARG
 A=M
+M=D
+@SP
+M=M-1
+@1
+D=A
+@ARG
+D=M+D
+@SP
 M=D
 @1
 D=A
@@ -106,7 +114,7 @@ A=M-D
 D=M
 @THAT
 M=D
-@1
+@2
 D=A
 @SimpleFunction.test$END_FRAME
 A=M-D
@@ -128,4 +136,5 @@ D=M
 @LCL
 M=D
 @SimpleFunction.test$RET_ADDR
+A=M
 0;JMP
