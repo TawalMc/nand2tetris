@@ -67,17 +67,26 @@ def push_pop_operations(file_name: str, command: str, segment: str, index_or_val
     return operations.get(segment, {}).get(command, [])
 
 
-def branching_operations(command: str,
-                         symbol: str,
-                         n_args_or_vars: Optional[int] = None,
-                         curr_func: Optional[str] = None,
-                         count: int = 0):
+def branching_operations(command: str, symbol: str, curr_func: Optional[str] = None):
     label_prefix = curr_func + '$' if curr_func else 'null$'
 
     operations = {
         "label": [f"({label_prefix}{symbol})"],
         "goto": [f"@{label_prefix}{symbol}", "0;JMP"],
-        "if-goto": ["@SP", "A=M-1", "D=M", "@SP", "M=M-1", f"@{label_prefix}{symbol}", "D;JNE"],
+        "if-goto": ["@SP", "A=M-1", "D=M", "@SP", "M=M-1", f"@{label_prefix}{symbol}", "D;JNE"]
+    }
+
+    return operations.get(command, [])
+
+
+def function_operations(command: str,
+                        symbol: str,
+                        n_args_or_vars: Optional[int] = None,
+                        curr_func: Optional[str] = None,
+                        count: int = 0):
+    label_prefix = curr_func + '$' if curr_func else 'null$'
+
+    operations = {
         "function": [f"({symbol})", f"@{symbol}$i", "M=0", f"({symbol}$LOOP_{count})", f"@{n_args_or_vars}", "D=A",
                      f"@{symbol}$i", "D=D-M", f"@{symbol}$END_LOOP_{count}", "D;JLE", "@SP", "A=M", "M=0", "@SP",
                      "M=M+1", f"@{symbol}$i", "M=M+1", f"@{symbol}$LOOP_{count}", "0; JMP",
@@ -117,23 +126,22 @@ class CodeWriter:
         for inst in instructions:
             self.__file.write(f"{inst}\n")
 
-    def write_label_if_goto(self, command: str, symbol: str):
-        instructions = branching_operations(command, symbol, None, self.__curr_func)
+    def write_branching(self, command: str, symbol: str):
+        instructions = branching_operations(command, symbol, self.__curr_func)
         for inst in instructions:
             self.__file.write(f"{inst}\n")
 
     def write_function(self, command: str, symbol: str, n_vars: int):
-        instructions = branching_operations(command, symbol, n_vars, symbol, self.__count_branch_inst)
+        instructions = function_operations(command, symbol, n_vars, symbol, self.__count_branch_inst)
         for inst in instructions:
             self.__file.write(f"{inst}\n")
         self.__curr_func = symbol
         self.__count_branch_inst += 1
 
     def write_return(self, command: str, symbol: str):
-        instructions = branching_operations(command, symbol, None, self.__curr_func)
+        instructions = function_operations(command, symbol, None, self.__curr_func)
         for inst in instructions:
             self.__file.write(f"{inst}\n")
-
         self.__curr_func = None
 
     def close(self):

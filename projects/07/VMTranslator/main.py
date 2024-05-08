@@ -28,13 +28,11 @@ if __name__ == '__main__':
         elif command_type in [C_PUSH, C_POP]:
             writer.write_push_pop(parser.command(), parser.arg1(), int(parser.arg2()))
         elif command_type in [C_LABEL, C_GOTO, C_IF]:
-            writer.write_label_if_goto(parser.command(), parser.arg1())
+            writer.write_branching(parser.command(), parser.arg1())
         elif command_type == C_FUNCTION:
             writer.write_function(parser.command(), parser.arg1(), int(parser.arg2()))
         elif command_type == C_RETURN:
             writer.write_return(parser.command(), parser.arg1())
-        #     # print(f"{parser.current_command}: {parser.command()} - {parser.arg1()}")
-        # print(f"{parser.current_command}: {parser.command()} - {parser.arg1()} - {parser.arg2()}")
 
     parser.close()
     writer.close()
