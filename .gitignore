@@ -151,4 +151,4 @@ fabric.properties
  .idea
 #
 #*.dat
-tools/bin/
+#tools/bin/
