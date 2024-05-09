@@ -12,7 +12,8 @@ if __name__ == '__main__':
     writer = CodeWriter(source_handler.out_file())
 
     for vm_file in source_handler.source_files():
-        writer.write_new_vm_file(os.path.basename(vm_file))
+        file_name = os.path.basename(vm_file)
+        writer.write_new_vm_file(file_name)
         parser = Parser(vm_file)
         while parser.has_more_lines():
             parser.advance()

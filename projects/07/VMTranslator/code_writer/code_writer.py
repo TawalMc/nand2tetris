@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from constants import TEMP_ADDR
@@ -91,6 +90,12 @@ def function_operations(command: str,
                      f"@{symbol}$i", "D=D-M", f"@{symbol}$END_LOOP_{count}", "D;JLE", "@SP", "A=M", "M=0", "@SP",
                      "M=M+1", f"@{symbol}$i", "M=M+1", f"@{symbol}$LOOP_{count}", "0; JMP",
                      f"({symbol}$END_LOOP_{count})"],
+
+        "call": ["@caller$ret.i", "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1", "@LCL", "D=M", "@SP", "A=M", "M=D", "@SP",
+                 "M=M+1", "@ARG", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1", "@THIS", "D=M", "@SP", "A=M", "M=D",
+                 "@SP", "M=M+1", "@THAT", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1", "D=M", "@5", "D=D-A", "@nArgs",
+                 "D=D-A", "@ARG", "M=D", "@SP", "D=M", "@LCL", "M=D", "@functionName", "0;JMP", "(caller$ret.i)"],
+
         "return": ["@LCL", "D=M", f"@{label_prefix}END_FRAME", "M=D", "@5", "D=A", f"@{label_prefix}END_FRAME", "A=M-D",
                    "D=M",
                    f"@{label_prefix}RET_ADDR", "M=D",
@@ -108,12 +113,18 @@ def function_operations(command: str,
 
 
 class CodeWriter:
-    def __init__(self, file_path: str):
+    def __init__(self, out_file_path: str, vm_file_name: Optional[str] = None):
         self.__count_ari_inst = 0
         self.__count_branch_inst = 0
-        self.__file = open(file_path, 'w+')
-        self.__file_name = os.path.splitext(os.path.basename(file_path))[0]
+        self.__file = open(out_file_path, 'w+')
+        self.__vm_file_name = vm_file_name
         self.__curr_func: Optional[str] = None
+
+    def set_vm_file_name(self, vm_file_name: str):
+        self.__vm_file_name = vm_file_name
+
+    def vm_file_name(self):
+        return self.__vm_file_name
 
     def write_arithmetic(self, command: str):
         instructions = arithmetic_operations(command, self.__count_ari_inst)
@@ -122,7 +133,7 @@ class CodeWriter:
         self.__count_ari_inst += 1
 
     def write_push_pop(self, command: str, segment: str, index_or_value: int):
-        instructions = push_pop_operations(self.__file_name, command, segment, index_or_value)
+        instructions = push_pop_operations(self.__vm_file_name, command, segment, index_or_value)
         for inst in instructions:
             self.__file.write(f"{inst}\n")
 
@@ -145,6 +156,7 @@ class CodeWriter:
         self.__curr_func = None
 
     def write_new_vm_file(self, vm_name: str):
+        self.set_vm_file_name(vm_name[: -3])
         self.__file.write(f"\n//{vm_name}\n")
 
     def close(self):

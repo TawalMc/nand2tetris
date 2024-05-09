@@ -1,5 +1,5 @@
 
-//Class1.vm
+//Class1
 (Class1.set)
 @Class1.set$i
 M=0
@@ -33,7 +33,7 @@ M=M+1
 @SP
 A=M-1
 D=M
-@StaticsTest.0
+@Class1.0
 M=D
 @SP
 M=M-1
@@ -50,7 +50,7 @@ M=M+1
 @SP
 A=M-1
 D=M
-@StaticsTest.1
+@Class1.1
 M=D
 @SP
 M=M-1
@@ -137,14 +137,14 @@ M=M+1
 @Class1.get$LOOP_1
 0; JMP
 (Class1.get$END_LOOP_1)
-@StaticsTest.0
+@Class1.0
 D=M
 @SP
 A=M
 M=D
 @SP
 M=M+1
-@StaticsTest.1
+@Class1.1
 D=M
 @SP
 A=M
@@ -215,7 +215,7 @@ M=D
 A=M
 0;JMP
 
-//Class2.vm
+//Class2
 (Class2.set)
 @Class2.set$i
 M=0
@@ -249,7 +249,7 @@ M=M+1
 @SP
 A=M-1
 D=M
-@StaticsTest.0
+@Class2.0
 M=D
 @SP
 M=M-1
@@ -266,7 +266,7 @@ M=M+1
 @SP
 A=M-1
 D=M
-@StaticsTest.1
+@Class2.1
 M=D
 @SP
 M=M-1
@@ -353,14 +353,14 @@ M=M+1
 @Class2.get$LOOP_3
 0; JMP
 (Class2.get$END_LOOP_3)
-@StaticsTest.0
+@Class2.0
 D=M
 @SP
 A=M
 M=D
 @SP
 M=M+1
-@StaticsTest.1
+@Class2.1
 D=M
 @SP
 A=M
@@ -431,7 +431,7 @@ M=D
 A=M
 0;JMP
 
-//Sys.vm
+//Sys
 (Sys.init)
 @Sys.init$i
 M=0
