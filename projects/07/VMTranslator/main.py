@@ -2,7 +2,7 @@ import os
 import sys
 
 from code_writer.code_writer import CodeWriter
-from constants import C_ARITHMETIC, C_PUSH, C_POP, C_LABEL, C_GOTO, C_IF, C_FUNCTION, C_RETURN
+from constants import C_ARITHMETIC, C_PUSH, C_POP, C_LABEL, C_GOTO, C_IF, C_FUNCTION, C_RETURN, C_CALL
 from parser.parser import Parser
 from source_handler.source_handler import SourceHandler
 
@@ -21,6 +21,7 @@ if __name__ == '__main__':
             if not command_type:
                 continue
 
+            writer.set_current_command(parser.current_command)
             if command_type == C_ARITHMETIC:
                 writer.write_arithmetic(parser.arg1())
             elif command_type in [C_PUSH, C_POP]:
@@ -29,6 +30,8 @@ if __name__ == '__main__':
                 writer.write_branching(parser.command(), parser.arg1())
             elif command_type == C_FUNCTION:
                 writer.write_function(parser.command(), parser.arg1(), int(parser.arg2()))
+            elif command_type == C_CALL:
+                writer.write_call(parser.command(), parser.arg1(), int(parser.arg2()))
             elif command_type == C_RETURN:
                 writer.write_return(parser.command(), parser.arg1())
 

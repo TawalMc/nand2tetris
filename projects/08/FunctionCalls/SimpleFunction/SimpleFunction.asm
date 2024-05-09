@@ -1,3 +1,15 @@
+// Bootstrap
+// SP=256
+@256
+D=A
+@SP
+M=D
+// call Sys.init
+@Sys.init
+0;JMP
+
+//SimpleFunction.vm
+// function SimpleFunction.test 2
 (SimpleFunction.test)
 @SimpleFunction.test$i
 M=0
@@ -7,7 +19,7 @@ D=A
 @SimpleFunction.test$i
 D=D-M
 @SimpleFunction.test$END_LOOP_0
-D;JLE
+D;JLT
 @SP
 A=M
 M=0
@@ -18,6 +30,7 @@ M=M+1
 @SimpleFunction.test$LOOP_0
 0; JMP
 (SimpleFunction.test$END_LOOP_0)
+// push local 0
 @0
 D=A
 @LCL
@@ -28,6 +41,7 @@ A=M
 M=D
 @SP
 M=M+1
+// push local 1
 @1
 D=A
 @LCL
@@ -38,6 +52,7 @@ A=M
 M=D
 @SP
 M=M+1
+// add
 @SP
 A=M-1
 D=M
@@ -45,9 +60,11 @@ A=A-1
 M=M+D
 @SP
 M=M-1
+// not
 @SP
 A=M-1
 M=!M
+// push argument 0
 @0
 D=A
 @ARG
@@ -58,6 +75,7 @@ A=M
 M=D
 @SP
 M=M+1
+// add
 @SP
 A=M-1
 D=M
@@ -65,6 +83,7 @@ A=A-1
 M=M+D
 @SP
 M=M-1
+// push argument 1
 @1
 D=A
 @ARG
@@ -75,6 +94,7 @@ A=M
 M=D
 @SP
 M=M+1
+// sub
 @SP
 A=M-1
 D=M
@@ -82,6 +102,7 @@ A=A-1
 M=M-D
 @SP
 M=M-1
+// return
 @LCL
 D=M
 @SimpleFunction.test$END_FRAME

@@ -91,10 +91,12 @@ def function_operations(command: str,
                      "M=M+1", f"@{symbol}$i", "M=M+1", f"@{symbol}$LOOP_{count}", "0; JMP",
                      f"({symbol}$END_LOOP_{count})"],
 
-        "call": ["@caller$ret.i", "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1", "@LCL", "D=M", "@SP", "A=M", "M=D", "@SP",
-                 "M=M+1", "@ARG", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1", "@THIS", "D=M", "@SP", "A=M", "M=D",
-                 "@SP", "M=M+1", "@THAT", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1", "D=M", "@5", "D=D-A", "@nArgs",
-                 "D=D-A", "@ARG", "M=D", "@SP", "D=M", "@LCL", "M=D", "@functionName", "0;JMP", "(caller$ret.i)"],
+        "call": [f"@{label_prefix}ret.{count}", "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1", "@LCL", "D=M", "@SP", "A=M",
+                 "M=D",
+                 "@SP", "M=M+1", "@ARG", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1", "@THIS", "D=M", "@SP", "A=M",
+                 "M=D", "@SP", "M=M+1", "@THAT", "D=M", "@SP", "A=M", "M=D", "@SP", "M=M+1", "D=M", "@5", "D=D-A",
+                 f"@{n_args_or_vars}", "D=D-A", "@ARG", "M=D", "@SP", "D=M", "@LCL", "M=D", f"@{symbol}", "0;JMP",
+                 f"({label_prefix}ret.{count})"],
 
         "return": ["@LCL", "D=M", f"@{label_prefix}END_FRAME", "M=D", "@5", "D=A", f"@{label_prefix}END_FRAME", "A=M-D",
                    "D=M",
@@ -116,9 +118,16 @@ class CodeWriter:
     def __init__(self, out_file_path: str, vm_file_name: Optional[str] = None):
         self.__count_ari_inst = 0
         self.__count_branch_inst = 0
+        self.__count_call_inst = 0
         self.__file = open(out_file_path, 'w+')
         self.__vm_file_name = vm_file_name
         self.__curr_func: Optional[str] = None
+        self.current_command = ""
+
+        self.write_bootstrap()
+
+    def set_current_command(self, current_command: str):
+        self.current_command = current_command
 
     def set_vm_file_name(self, vm_file_name: str):
         self.__vm_file_name = vm_file_name
@@ -128,36 +137,71 @@ class CodeWriter:
 
     def write_arithmetic(self, command: str):
         instructions = arithmetic_operations(command, self.__count_ari_inst)
+
+        self.display_current_command()
         for inst in instructions:
             self.__file.write(f"{inst}\n")
         self.__count_ari_inst += 1
 
     def write_push_pop(self, command: str, segment: str, index_or_value: int):
         instructions = push_pop_operations(self.__vm_file_name, command, segment, index_or_value)
+
+        self.display_current_command()
         for inst in instructions:
             self.__file.write(f"{inst}\n")
 
     def write_branching(self, command: str, symbol: str):
         instructions = branching_operations(command, symbol, self.__curr_func)
+
+        self.display_current_command()
         for inst in instructions:
             self.__file.write(f"{inst}\n")
 
     def write_function(self, command: str, symbol: str, n_vars: int):
         instructions = function_operations(command, symbol, n_vars, symbol, self.__count_branch_inst)
+
+        self.display_current_command()
         for inst in instructions:
             self.__file.write(f"{inst}\n")
         self.__curr_func = symbol
         self.__count_branch_inst += 1
 
+    def write_call(self, command: str, symbol: str, n_args: int):
+        instructions = function_operations(command, symbol, n_args, symbol, self.__count_call_inst)
+
+        self.display_current_command()
+        for inst in instructions:
+            self.__file.write(f"{inst}\n")
+        self.__count_call_inst += 1
+
     def write_return(self, command: str, symbol: str):
         instructions = function_operations(command, symbol, None, self.__curr_func)
+
+        self.display_current_command()
         for inst in instructions:
             self.__file.write(f"{inst}\n")
         self.__curr_func = None
+        self.__count_branch_inst = 0
+        self.__count_call_inst = 0
+
+    # def write_bootstrap(self):
+    #     instructions = ["// Bootstrap", "// SP=256", "@256", "D=A", "@SP", "M=D", "// call Sys.init", "@Sys.init",
+    #                     "0;JMP"]
+    #     for inst in instructions:
+    #         self.__file.write(f"{inst}\n")
+
+    def write_bootstrap(self):
+        instructions = ["// Bootstrap", "// SP=256", "@256", "D=A", "@SP", "M=D",
+                        "// call Sys.init", *function_operations("call", "Sys.init", 0, None)]
+        for inst in instructions:
+            self.__file.write(f"{inst}\n")
 
     def write_new_vm_file(self, vm_name: str):
         self.set_vm_file_name(vm_name[: -3])
         self.__file.write(f"\n//{vm_name}\n")
+
+    def display_current_command(self):
+        self.__file.write(f"// {self.current_command}")
 
     def close(self):
         self.__file.close()
