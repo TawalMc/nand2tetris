@@ -144,5 +144,8 @@ class CodeWriter:
             self.__file.write(f"{inst}\n")
         self.__curr_func = None
 
+    def write_new_vm_file(self, vm_name: str):
+        self.__file.write(f"\n//{vm_name}\n")
+
     def close(self):
         self.__file.close()
