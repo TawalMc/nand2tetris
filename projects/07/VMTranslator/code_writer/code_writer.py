@@ -124,7 +124,7 @@ class CodeWriter:
         self.__curr_func: Optional[str] = None
         self.current_command = ""
 
-        self.write_bootstrap()
+        self.write_init()
 
     def set_current_command(self, current_command: str):
         self.current_command = current_command
@@ -184,13 +184,13 @@ class CodeWriter:
         self.__count_branch_inst = 0
         self.__count_call_inst = 0
 
-    # def write_bootstrap(self):
+    # def write_init(self):
     #     instructions = ["// Bootstrap", "// SP=256", "@256", "D=A", "@SP", "M=D", "// call Sys.init", "@Sys.init",
     #                     "0;JMP"]
     #     for inst in instructions:
     #         self.__file.write(f"{inst}\n")
 
-    def write_bootstrap(self):
+    def write_init(self):
         instructions = ["// Bootstrap", "// SP=256", "@256", "D=A", "@SP", "M=D",
                         "// call Sys.init", *function_operations("call", "Sys.init", 0, None)]
         for inst in instructions:
