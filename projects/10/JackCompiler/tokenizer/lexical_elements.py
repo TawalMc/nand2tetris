@@ -17,3 +17,11 @@ TOKEN_XML = {
     "INT_CONST": "integerConstant",
     "STRING_CONST": "stringConstant"
 }
+
+TOKEN_TYPES = [
+    "keyword",
+    "symbol",
+    "identifier",
+    "integerConstant",
+    "stringConstant"
+]
