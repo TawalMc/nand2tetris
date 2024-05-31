@@ -24,7 +24,7 @@ if __name__ == '__main__':
     #     tokenizer.close()
     #     tokenizer_output.close()
     parser = CompilationEngine(
-        "/home/tawaliou/Documents/apps/nand2tetris/projects/10/Square/SquareT.xml",
-        "/home/tawaliou/Documents/apps/nand2tetris/projects/10/Square/SquareOwnP.xml"
+        "/home/tawaliou/Documents/apps/nand2tetris/projects/10/ExpressionLessSquare/SquareT.xml",
+        "/home/tawaliou/Documents/apps/nand2tetris/projects/10/ExpressionLessSquare/SquareOwnP.xml"
     )
 

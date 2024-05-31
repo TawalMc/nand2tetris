@@ -13,6 +13,7 @@ class CompilationEngine:
         self.compile_class()
 
     def compile_class(self):
+        # 'class' className '{' classVarDec* subroutineDec* '}'
         self.__out_file.write("<class>\n")
 
         # class
@@ -26,13 +27,16 @@ class CompilationEngine:
             self.compile_class_var_dec()
 
         # subroutineDec*
-        self.compile_subroutine_dec()
+        while self.__current_token.text in ['constructor', 'function', 'method']:
+            self.compile_subroutine_dec()
 
-        # self.process(["}"])
+        # }
+        self.process(["}"])
 
         self.__out_file.write("</class>")
 
     def compile_class_var_dec(self):
+        # ( 'static' | 'field' ) type varName ( ',' varName)* ';'
         self.__out_file.write("<classVarDec>\n")
 
         # static | field
@@ -51,6 +55,7 @@ class CompilationEngine:
         self.__out_file.write("</classVarDec>\n")
 
     def compile_subroutine_dec(self):
+        # ( 'constructor' | 'function' | 'method' ) ( 'void' | type) subroutineName '(' parameterList ')' subroutineBody
         self.__out_file.write("<subroutineDec>\n")
 
         # ( 'constructor' | 'function' | 'method')
@@ -66,29 +71,274 @@ class CompilationEngine:
         self.process(["("])
 
         # parameterList
-        if self.__current_token.text != ")":
-            self.compile_parameter_list()
+        self.compile_parameter_list()
 
         # )
         self.process([")"])
 
+        # subroutineBody
+        self.subroutine_body()
+
         self.__out_file.write("</subroutineDec>\n")
 
     def compile_parameter_list(self):
+        # ((type varName) ( ',' type varName)*)?
         self.__out_file.write("<parameterList>\n")
 
-        # (type varName)
+        if self.__current_token.text != ")":
+            # (type varName)
+            self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
+            self.process_terminal(["identifier"])
+
+            # (, type varName)*
+            while self.__current_token.text == ",":
+                self.process([","])
+
+                self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
+                self.process_terminal(["identifier"])
+
+        self.__out_file.write("</parameterList>\n")
+
+    def subroutine_body(self):
+        # '{' varDec* statements '}'
+        self.__out_file.write("<subroutineBody>\n")
+
+        # {
+        self.process(["{"])
+
+        # varDec*
+        while self.__current_token.text == "var":
+            self.compile_var_dec()
+
+        # statements
+        self.compile_statements()
+
+        # }
+        self.process(["}"])
+
+        self.__out_file.write("</subroutineBody>\n")
+        pass
+
+    def compile_subroutine_call(self):
+        # subroutineName '(' expressionList ')' | (className | varName) '.' subroutineName '(' expressionList ')'
+
+        # subroutineName | className | varName
+        self.process_terminal(["identifier"])
+
+        #  (className | varName) '.' subroutineName '(' expressionList ')'
+        if self.__current_token.text == ".":
+            # .
+            self.process(["."])
+            # subroutineName
+            self.process_terminal(["identifier"])
+
+        # (
+        self.process(["("])
+
+        # expressionList
+        self.compile_expression_list()
+
+        # )
+        self.process([")"])
+
+    def compile_var_dec(self):
+        # 'var' type varName ( ',' varName)* ';'
+        self.__out_file.write("<varDec>\n")
+
+        # var
+        self.process(["var"])
+
+        # type
         self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
+
+        # varName
         self.process_terminal(["identifier"])
 
         # (, type varName)*
-        while self.__current_token.text == ",":
+        while self.__current_token.text != ";":
             self.process([","])
 
             self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
             self.process_terminal(["identifier"])
 
-        self.__out_file.write("</parameterList>\n")
+        self.process([";"])
+
+        self.__out_file.write("</varDec>\n")
+        pass
+
+    def compile_statements(self):
+        # statement *
+        self.__out_file.write("<statements>\n")
+
+        while self.__current_token.text in ["if", "let", "while", "do", "return"]:
+            if self.__current_token.text == "if":
+                self.compile_if()
+            elif self.__current_token.text == "let":
+                self.compile_let()
+            elif self.__current_token.text == "while":
+                self.compile_while()
+            elif self.__current_token.text == "do":
+                self.compile_do()
+            elif self.__current_token.text == "return":
+                self.compile_return()
+
+        self.__out_file.write("</statements>\n")
+
+    def compile_expression_list(self):
+        # (expression(',' expression) * )?
+        self.__out_file.write("<expressionList>\n")
+
+        while self.__current_token.text != ")":
+            if self.__current_token.text == ",":
+                self.process([","])
+            self.compile_expression()
+
+        self.__out_file.write("</expressionList>\n")
+
+    # TODO: real implementation
+    def compile_expression(self):
+        # term (op term)*
+        self.__out_file.write("<expression>\n")
+
+        self.compile_term()
+
+        self.__out_file.write("</expression>\n")
+        pass
+
+    # TODO: real implementation
+    def compile_term(self):
+        # integerConstant | stringConstant | keywordConstant |
+        # varName | varName '[' expression ']' | subroutineCall |
+        # '(' expression ')' | unaryOp term
+        self.__out_file.write("<term>\n")
+
+        self.process_terminal(["identifier", "keyword", "stringConstant", "integerConstant"])
+
+        self.__out_file.write("</term>\n")
+
+    def compile_let(self):
+        # 'let' varName ( '[' expression ']' )? '=' expression ';'
+        self.__out_file.write("<letStatement>\n")
+
+        # let
+        self.process(["let"])
+
+        # varName
+        self.process_terminal(["identifier"])
+
+        # ( '[' expression ']' )?
+        # case: [expression]
+        if self.__current_token.text == "[":
+            self.process(["["])
+            self.compile_expression()
+            self.process(["]"])
+
+        # =
+        self.process(["="])
+
+        # expression
+        self.compile_expression()
+
+        # ;
+        self.process([";"])
+
+        self.__out_file.write("</letStatement>\n")
+
+    def compile_if(self):
+        # 'if' '(' expression ')' '{' statements '}'
+        # ( 'else' '{' statements '}' )?
+        self.__out_file.write("<ifStatement>\n")
+
+        # if
+        self.process(["if"])
+
+        # (
+        self.process(["("])
+
+        # expression
+        self.compile_expression()
+
+        # )
+        self.process([")"])
+
+        # {
+        self.process(["{"])
+
+        # statements
+        self.compile_statements()
+
+        # }
+        self.process(["}"])
+
+        # else
+        if self.__current_token.text == "else":
+            self.process(["else"])
+            # {
+            self.process(["{"])
+            # statements
+            self.compile_statements()
+            # }
+            self.process(["}"])
+
+        self.__out_file.write("</ifStatement>\n")
+
+    def compile_while(self):
+        # 'while' '(' expression ')' '{' statements '}'
+        self.__out_file.write("<whileStatement>\n")
+
+        # while
+        self.process(["while"])
+
+        # (
+        self.process(["("])
+
+        # expression
+        self.compile_expression()
+
+        # )
+        self.process([")"])
+
+        # {
+        self.process(["{"])
+
+        # statements
+        self.compile_statements()
+
+        # }
+        self.process(["}"])
+
+        self.__out_file.write("</whileStatement>\n")
+
+    def compile_do(self):
+        # 'do' subroutineCall ';'
+        self.__out_file.write("<doStatement>\n")
+
+        # do
+        self.process(["do"])
+
+        # subroutineCall
+        self.compile_subroutine_call()
+
+        # ;
+        self.process([";"])
+
+        self.__out_file.write("</doStatement>\n")
+        pass
+
+    def compile_return(self):
+        # 'return' expression? ';'
+        self.__out_file.write("<returnStatement>\n")
+
+        # return
+        self.process(["return"])
+
+        # expression
+        if self.__current_token.text != ";":
+            self.compile_expression()
+
+        # ;
+        self.process([";"])
+        self.__out_file.write("</returnStatement>\n")
 
     def process(self, tokens: List[str]):
         if self.__current_token.text in tokens:
