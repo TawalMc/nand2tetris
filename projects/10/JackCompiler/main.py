@@ -2,29 +2,29 @@
 
 # Press Maj+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import sys
 
 from compilation_engine.compilation_engine import CompilationEngine
+from source_handler.source_handler import SourceHandler
+from tokenizer.tokenizer import Tokenizer
 
 if __name__ == '__main__':
-    # in_file = sys.argv[1]
-    # source_handler = SourceHandler(in_file, True)
-    #
-    # for jack_file in source_handler.out_files():
-    #     tokenizer = Tokenizer(jack_file["in"])
-    #     tokenizer_output = TokenizerOutput(jack_file["out"])
-    #     while tokenizer.has_more_lines():
-    #         tokenizer.read_line()
-    #
-    #         while tokenizer.has_more_tokens():
-    #             tokenizer.advance()
-    #             if tokenizer.get_current_token():
-    #                 token_info = tokenizer.token_info()
-    #                 tokenizer_output.write_token(token_info[0], token_info[1])
-    #
-    #     tokenizer.close()
-    #     tokenizer_output.close()
-    parser = CompilationEngine(
-        "/home/tawaliou/Documents/apps/nand2tetris/projects/10/ExpressionLessSquare/SquareT.xml",
-        "/home/tawaliou/Documents/apps/nand2tetris/projects/10/ExpressionLessSquare/SquareOwnP.xml"
-    )
+    in_file = sys.argv[1]
 
+    print("--- Start Tokenization ---")
+    tokenizer_source_handler = SourceHandler(in_file, ".jack", "OwnT.xml")
+    for jack_file in tokenizer_source_handler.out_files():
+        print(f"tokenization: {jack_file['in']} --to-> {jack_file['out']}")
+        tokenizer = Tokenizer(jack_file["in"], jack_file["out"])
+        tokenizer.generate_tokens()
+        tokenizer.close()
+    print("--- End Tokenization ---")
+
+    print("--- Start Parsing ---")
+    parser_source_handler = SourceHandler(in_file, "OwnT.xml", "OwnP.xml")
+    for tokens_file in parser_source_handler.out_files():
+        print(f"parsing : {tokens_file['in']} --to-> {tokens_file['out']}")
+        parser = CompilationEngine(tokens_file["in"], tokens_file["out"])
+        parser.compile_class()
+        parser.close()
+    print("--- End Parsing ---")

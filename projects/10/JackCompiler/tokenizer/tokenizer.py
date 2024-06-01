@@ -1,14 +1,29 @@
-from tokenizer.lexical_elements import SYMBOLS, KEYWORDS, KEYWORD, STRING_CONST, INT_CONST, IDENTIFIER, SYMBOL
+from tokenizer.lexical_elements import SYMBOLS, KEYWORDS, KEYWORD, STRING_CONST, INT_CONST, IDENTIFIER, SYMBOL, \
+    TOKEN_XML
+from utils.utils import write_avoid_xml_conflicts
 
 
 class Tokenizer:
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self, in_file_path: str, out_file_path: str):
+        self.__in_file_path = in_file_path
         self.__current_line = ""
         self.__line_content = []
         self.__current_token = ""
 
-        self.file = open(file_path, 'r')
+        self.__in_file = open(in_file_path, 'r')
+
+        self.__out_file = open(out_file_path, 'w+')
+        self.__out_file.write("<tokens>\n")
+
+    def generate_tokens(self):
+        while self.has_more_lines():
+            self.read_line()
+
+            while self.has_more_tokens():
+                self.advance()
+                if self.get_current_token():
+                    token_info = self.token_info()
+                    self.write_token(token_info[0], token_info[1])
 
     def get_current_token(self):
         return self.__current_token
@@ -20,9 +35,9 @@ class Tokenizer:
         return self.__line_content
 
     def has_more_lines(self) -> bool:
-        curr_pos = self.file.tell()
-        has_it = bool(self.file.readline())
-        self.file.seek(curr_pos)
+        curr_pos = self.__in_file.tell()
+        has_it = bool(self.__in_file.readline())
+        self.__in_file.seek(curr_pos)
 
         return has_it
 
@@ -103,17 +118,21 @@ class Tokenizer:
     def string_val(self):
         return self.__current_token[1:-1]
 
+    def write_token(self, token_type: str, token):
+        tag = TOKEN_XML[token_type]
+        self.__out_file.write(f"<{tag}>{write_avoid_xml_conflicts(token)}</{tag}>\n")
+
     @staticmethod
     def __is_char_symbol(c: str) -> bool:
         return c in SYMBOLS
 
     def purge_comments_from_line(self):
-        self.__current_line = self.file.readline()
+        self.__current_line = self.__in_file.readline()
 
         if self.__current_line.find("/*") >= 0:
             content = self.__current_line
             while content and content.find("*/") < 0:
-                content = self.file.readline()
+                content = self.__in_file.readline()
             self.purge_comments_from_line()
 
         if self.__current_line.isspace() or self.__current_line == "\n":
@@ -124,4 +143,7 @@ class Tokenizer:
             self.__current_line = self.__current_line[: eol_comment_index]
 
     def close(self):
-        self.file.close()
+        self.__in_file.close()
+
+        self.__out_file.write("</tokens>\n")
+        self.__out_file.close()

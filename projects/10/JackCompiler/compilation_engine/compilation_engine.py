@@ -1,6 +1,8 @@
 import xml.etree.ElementTree as ElT
 from typing import List
 
+from utils.utils import write_avoid_xml_conflicts
+
 
 class CompilationEngine:
     def __init__(self, in_file: str, out_file: str):
@@ -9,8 +11,6 @@ class CompilationEngine:
 
         self.__token_iterator = ElT.iterparse(self.__in_file)
         _, self.__current_token = next(self.__token_iterator)
-
-        self.compile_class()
 
     def compile_class(self):
         # 'class' className '{' classVarDec* subroutineDec* '}'
@@ -123,7 +123,7 @@ class CompilationEngine:
         # subroutineName '(' expressionList ')' | (className | varName) '.' subroutineName '(' expressionList ')'
 
         # subroutineName | className | varName
-        self.process_terminal(["identifier"])
+        # self.process_terminal(["identifier"])
 
         #  (className | varName) '.' subroutineName '(' expressionList ')'
         if self.__current_token.text == ".":
@@ -157,8 +157,6 @@ class CompilationEngine:
         # (, type varName)*
         while self.__current_token.text != ";":
             self.process([","])
-
-            self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
             self.process_terminal(["identifier"])
 
         self.process([";"])
@@ -200,7 +198,13 @@ class CompilationEngine:
         # term (op term)*
         self.__out_file.write("<expression>\n")
 
+        # term
         self.compile_term()
+
+        # (op term)*
+        while self.__current_token.text in ['+', '-', '*', '/', '&', '|', '<', '>', '=']:
+            self.process_terminal([], ['+', '-', '*', '/', '&', '|', '<', '>', '='])
+            self.compile_term()
 
         self.__out_file.write("</expression>\n")
         pass
@@ -212,7 +216,34 @@ class CompilationEngine:
         # '(' expression ')' | unaryOp term
         self.__out_file.write("<term>\n")
 
-        self.process_terminal(["identifier", "keyword", "stringConstant", "integerConstant"])
+        # integerConstant | stringConstant | keywordConstant
+        if self.__current_token.tag in ["integerConstant", "stringConstant"]:
+            self.process_terminal(["integerConstant", "stringConstant"])
+
+        elif self.__current_token.tag == "keyword":
+            self.process(['true', 'false', 'null', 'this'])
+
+        # '(' expression ')'
+        elif self.__current_token.text == "(":
+            self.process(["("])
+            self.compile_expression()
+            self.process([")"])
+
+        # unaryOp term
+        elif self.__current_token.text in ['-', '~']:
+            self.process_terminal([], ['-', '~'])
+            self.compile_term()
+
+        elif self.__current_token.tag == "identifier":
+            self.process_terminal(["identifier"])
+            # varName '[' expression ']'
+            if self.__current_token.text == "[":
+                self.process(["["])
+                self.compile_expression()
+                self.process(["]"])
+            # subroutineCall
+            elif self.__current_token.text in [".", "("]:
+                self.compile_subroutine_call()
 
         self.__out_file.write("</term>\n")
 
@@ -317,13 +348,14 @@ class CompilationEngine:
         self.process(["do"])
 
         # subroutineCall
+        # subroutineName | className | varName
+        self.process_terminal(["identifier"])
         self.compile_subroutine_call()
 
         # ;
         self.process([";"])
 
         self.__out_file.write("</doStatement>\n")
-        pass
 
     def compile_return(self):
         # 'return' expression? ';'
@@ -359,7 +391,7 @@ class CompilationEngine:
         _, self.__current_token = next(self.__token_iterator)
 
     def write_token(self, token_type: str, token):
-        self.__out_file.write(f"<{token_type}>{token}</{token_type}>\n")
+        self.__out_file.write(f"<{token_type}>{write_avoid_xml_conflicts(token)}</{token_type}>\n")
 
     def close(self):
         self.__out_file.close()
