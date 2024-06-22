@@ -25,3 +25,18 @@ TOKEN_TYPES = [
     "integerConstant",
     "stringConstant"
 ]
+
+
+class Kind:
+    STATIC = "static"
+    FIELD = "field"
+    ARG = "arg"
+    VAR = "var"
+    ROUTINE = "subroutine"
+    CLASS = "class"
+    LOCAL = "local"
+
+
+class IdentifierStatus:
+    DEFINED = 'defined'
+    USED = "used"

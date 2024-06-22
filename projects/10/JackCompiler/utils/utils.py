@@ -19,3 +19,13 @@ def is_valid_file(file: str, end_with: str = ".jack", raise_error=False):
         raise ValueError("the file name must start with an uppercase letter")
     if not file.endswith(end_with):
         raise ValueError(f"the file extension must be {end_with}")
+
+
+def format_dict_to_str(value):
+    if not value:
+        return ''
+
+    text = ''
+    for k, v in value.items():
+        text += f" {k}='{v}'"
+    return text

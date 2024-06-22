@@ -1,7 +1,9 @@
 import xml.etree.ElementTree as ElT
 from typing import List
 
-from utils.utils import write_avoid_xml_conflicts
+from symbol_table.symbol_table import SymbolTable
+from tokenizer.lexical_elements import IdentifierStatus, Kind
+from utils.utils import write_avoid_xml_conflicts, format_dict_to_str
 
 
 class CompilationEngine:
@@ -12,14 +14,20 @@ class CompilationEngine:
         self.__token_iterator = ElT.iterparse(self.__in_file)
         _, self.__current_token = next(self.__token_iterator)
 
+        self.class_symbol_table = SymbolTable()
+        self.subroutine_symbol_table = SymbolTable()
+
     def compile_class(self):
         # 'class' className '{' classVarDec* subroutineDec* '}'
         self.__out_file.write("<class>\n")
 
         # class
         self.process(["class"])
+
         # className
-        self.process_terminal(["identifier"])
+        self.class_symbol_table.update_symbol_table_name(self.__current_token.text)
+        self.process_terminal(token_types=["identifier"],
+                              attribs={"kind": Kind.CLASS, "status": IdentifierStatus.DEFINED})
         # {
         self.process(["{"])
         # classVarDec*
@@ -40,21 +48,43 @@ class CompilationEngine:
         self.__out_file.write("<classVarDec>\n")
 
         # static | field
+        _token_kind = self.__current_token.text
         self.process(["static", "field"])
+
         # type (int, char, boolean, className)
-        self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
+        _token_type = self.__current_token.text
+        self.process_terminal(["identifier"], ['int', 'char', 'boolean'],
+                              {"kind": Kind.CLASS, 'status': IdentifierStatus.USED})
         # varName
-        self.process_terminal(["identifier"])
+        _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, _token_kind)
+        self.process_terminal(
+            token_types=["identifier"],
+            attribs={"kind": _token_kind,
+                     "status": IdentifierStatus.DEFINED,
+                     "type": _token_type,
+                     "index": _var_name['index']})
+
         # ( ',' varName)*
         while self.__current_token.text != ";":
             self.process([","])
-            self.process_terminal(["identifier"])
+
+            _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, _token_kind)
+            self.process_terminal(
+                token_types=["identifier"],
+                attribs={"kind": _token_kind,
+                         "status": IdentifierStatus.DEFINED,
+                         "type": _token_type,
+                         "index": _var_name['index']}
+            )
         # ';'
         self.process([";"])
 
         self.__out_file.write("</classVarDec>\n")
 
     def compile_subroutine_dec(self):
+        # call SymbolTable subroutine symbol table init
+        self.subroutine_symbol_table.reset()
+
         # ( 'constructor' | 'function' | 'method' ) ( 'void' | type) subroutineName '(' parameterList ')' subroutineBody
         self.__out_file.write("<subroutineDec>\n")
 
@@ -62,15 +92,23 @@ class CompilationEngine:
         self.process(['constructor', 'function', 'method'])
 
         # ( 'void' | type)
-        self.process_terminal(["identifier"], ['int', 'char', 'boolean', 'void'])
+        _token_type = self.__current_token.text
+        self.process_terminal(
+            ["identifier"],
+            ['int', 'char', 'boolean', 'void'],
+            {"kind": Kind.CLASS, "status": IdentifierStatus.USED}
+        )
 
         # subroutineName
-        self.process_terminal(["identifier"])
+        self.process_terminal(
+            token_types=["identifier"],
+            attribs={"kind": Kind.ROUTINE, "type": _token_type, "status": IdentifierStatus.DEFINED})
 
         # (
         self.process(["("])
 
         # parameterList
+        self.subroutine_symbol_table.define("this", self.class_symbol_table.symbol_table_name(), Kind.ARG)
         self.compile_parameter_list()
 
         # )
@@ -82,20 +120,48 @@ class CompilationEngine:
         self.__out_file.write("</subroutineDec>\n")
 
     def compile_parameter_list(self):
+        # call symbol table subroutine
+
         # ((type varName) ( ',' type varName)*)?
         self.__out_file.write("<parameterList>\n")
 
         if self.__current_token.text != ")":
             # (type varName)
-            self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
-            self.process_terminal(["identifier"])
+            _token_type = self.__current_token.text
+            self.process_terminal(
+                ["identifier"],
+                ['int', 'char', 'boolean'],
+                {"kind": Kind.CLASS, "status": IdentifierStatus.USED}
+            )
+
+            _var_name = self.subroutine_symbol_table.define(self.__current_token.text, _token_type, Kind.ARG)
+            self.process_terminal(
+                token_types=["identifier"],
+                attribs={"kind": Kind.ARG,
+                         "status": IdentifierStatus.DEFINED,
+                         "type": _token_type,
+                         "index": _var_name['index']}
+            )
 
             # (, type varName)*
             while self.__current_token.text == ",":
                 self.process([","])
 
-                self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
-                self.process_terminal(["identifier"])
+                _token_type = self.__current_token.text
+                self.process_terminal(
+                    ["identifier"],
+                    ['int', 'char', 'boolean'],
+                    {"kind": Kind.CLASS, "status": IdentifierStatus.USED}
+                )
+
+                _var_name = self.subroutine_symbol_table.define(self.__current_token.text, _token_type, Kind.ARG)
+                self.process_terminal(
+                    token_types=["identifier"],
+                    attribs={"kind": Kind.ARG,
+                             "status": IdentifierStatus.DEFINED,
+                             "type": _token_type,
+                             "index": _var_name['index']}
+                )
 
         self.__out_file.write("</parameterList>\n")
 
@@ -106,6 +172,7 @@ class CompilationEngine:
         # {
         self.process(["{"])
 
+        # call symbol table subroutine
         # varDec*
         while self.__current_token.text == "var":
             self.compile_var_dec()
@@ -130,7 +197,10 @@ class CompilationEngine:
             # .
             self.process(["."])
             # subroutineName
-            self.process_terminal(["identifier"])
+            self.process_terminal(
+                token_types=["identifier"],
+                attribs={"kind": Kind.ROUTINE, "status": IdentifierStatus.USED}
+            )
 
         # (
         self.process(["("])
@@ -149,15 +219,35 @@ class CompilationEngine:
         self.process(["var"])
 
         # type
-        self.process_terminal(["identifier"], ['int', 'char', 'boolean'])
+        _token_type = self.__current_token.text
+        self.process_terminal(
+            ["identifier"],
+            ['int', 'char', 'boolean'],
+            {"kind": Kind.CLASS, "status": IdentifierStatus.USED}
+        )
 
         # varName
-        self.process_terminal(["identifier"])
+        _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, Kind.VAR)
+        self.process_terminal(
+            token_types=["identifier"],
+            attribs={"kind": Kind.VAR,
+                     "status": IdentifierStatus.DEFINED,
+                     "type": _token_type,
+                     "index": _var_name['index']}
+        )
 
         # (, type varName)*
         while self.__current_token.text != ";":
             self.process([","])
-            self.process_terminal(["identifier"])
+
+            _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, Kind.VAR)
+            self.process_terminal(
+                token_types=["identifier"],
+                attribs={"kind": Kind.VAR,
+                         "status": IdentifierStatus.DEFINED,
+                         "type": _token_type,
+                         "index": _var_name['index']}
+            )
 
         self.process([";"])
 
@@ -234,8 +324,22 @@ class CompilationEngine:
             self.process_terminal([], ['-', '~'])
             self.compile_term()
 
+        # routine symbol table call
         elif self.__current_token.tag == "identifier":
-            self.process_terminal(["identifier"])
+            _attribs = {"status": IdentifierStatus.USED, "kind": Kind.CLASS}
+            _symbol_table = None
+            if self.subroutine_symbol_table.is_key(self.__current_token.text):
+                _symbol_table = self.subroutine_symbol_table
+            elif self.class_symbol_table.is_key(self.__current_token.text):
+                _symbol_table = self.class_symbol_table
+
+            if _symbol_table:
+                _attribs = {**_attribs, "kind": _symbol_table.kind_of(self.__current_token.text),
+                            'type': _symbol_table.type_of(self.__current_token.text),
+                            'index': _symbol_table.index_of(self.__current_token.text)}
+
+            self.process_terminal(token_types=["identifier"], attribs=_attribs)
+
             # varName '[' expression ']'
             if self.__current_token.text == "[":
                 self.process(["["])
@@ -255,7 +359,17 @@ class CompilationEngine:
         self.process(["let"])
 
         # varName
-        self.process_terminal(["identifier"])
+        if self.subroutine_symbol_table.is_key(self.__current_token.text):
+            _symbol_table = self.subroutine_symbol_table
+        else:
+            _symbol_table = self.class_symbol_table
+
+        self.process_terminal(
+            token_types=["identifier"],
+            attribs={"status": IdentifierStatus.USED,
+                     "kind": _symbol_table.kind_of(self.__current_token.text),
+                     'type': _symbol_table.type_of(self.__current_token.text),
+                     'index': _symbol_table.index_of(self.__current_token.text)})
 
         # ( '[' expression ']' )?
         # case: [expression]
@@ -349,7 +463,23 @@ class CompilationEngine:
 
         # subroutineCall
         # subroutineName | className | varName
-        self.process_terminal(["identifier"])
+        _symbol_table = None
+        _attribs = {"kind": f"{Kind.CLASS}|{Kind.ROUTINE}", "status": IdentifierStatus.USED}
+        if self.subroutine_symbol_table.is_key(self.__current_token.text):
+            _symbol_table = self.subroutine_symbol_table
+        elif self.class_symbol_table.is_key(self.__current_token.text):
+            _symbol_table = self.class_symbol_table
+
+        if _symbol_table:
+            _attribs = {"kind": _symbol_table.kind_of(self.__current_token.text),
+                        "status": IdentifierStatus.USED,
+                        'type': _symbol_table.type_of(self.__current_token.text),
+                        'index': _symbol_table.index_of(self.__current_token.text)}
+
+        self.process_terminal(
+            token_types=["identifier"],
+            attribs=_attribs
+        )
         self.compile_subroutine_call()
 
         # ;
@@ -380,9 +510,14 @@ class CompilationEngine:
 
         _, self.__current_token = next(self.__token_iterator)
 
-    def process_terminal(self, token_types: List[str], token_values: List[str] = []):
+    # if identifier:
+    # <identifier kind="KIND" index="0" status="DEFINED|USED">_the_identifier_</identifier>
+    def process_terminal(self, token_types: List[str], token_values: List[str] = [], attribs=None):
         if self.__current_token.tag in token_types or self.__current_token.text in token_values:
-            self.write_token(self.__current_token.tag, self.__current_token.text)
+            self.write_token(
+                self.__current_token.tag,
+                self.__current_token.text,
+                '' if self.__current_token.tag != "identifier" else format_dict_to_str(attribs))
         else:
             raise SyntaxError(
                 f"found token type: {self.__current_token.tag} and {self.__current_token.text} "
@@ -390,8 +525,8 @@ class CompilationEngine:
 
         _, self.__current_token = next(self.__token_iterator)
 
-    def write_token(self, token_type: str, token):
-        self.__out_file.write(f"<{token_type}>{write_avoid_xml_conflicts(token)}</{token_type}>\n")
+    def write_token(self, token_type: str, token: str, attribs: str = ''):
+        self.__out_file.write(f"<{token_type} {attribs}>{write_avoid_xml_conflicts(token)}</{token_type}>\n")
 
     def close(self):
         self.__out_file.close()
