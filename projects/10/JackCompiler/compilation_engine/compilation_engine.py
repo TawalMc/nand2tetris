@@ -2,8 +2,11 @@ import xml.etree.ElementTree as ElT
 from typing import List
 
 from symbol_table.symbol_table import SymbolTable
-from tokenizer.lexical_elements import IdentifierStatus, Kind
-from utils.utils import write_avoid_xml_conflicts, format_dict_to_str
+from tokenizer.lexical_elements import IdentifierStatus, Kind, ARITHMETICS_OPS
+from utils.utils import write_avoid_xml_conflicts
+from vm_writer.vm_writer import VMWriter
+
+file = "/home/tawaliou/Documents/apps/nand2tetris/projects/10/JackCompiler/test.txt"
 
 
 class CompilationEngine:
@@ -16,10 +19,11 @@ class CompilationEngine:
 
         self.class_symbol_table = SymbolTable()
         self.subroutine_symbol_table = SymbolTable()
+        self.vm_writer = VMWriter(file)
 
     def compile_class(self):
         # 'class' className '{' classVarDec* subroutineDec* '}'
-        self.__out_file.write("<class>\n")
+        # self.__out_file.write("<class>\n")
 
         # class
         self.process(["class"])
@@ -41,12 +45,13 @@ class CompilationEngine:
         # }
         self.process(["}"])
 
-        self.__out_file.write("</class>")
+        # self.__out_file.write("</class>")
 
     def compile_class_var_dec(self):
         # ( 'static' | 'field' ) type varName ( ',' varName)* ';'
-        self.__out_file.write("<classVarDec>\n")
+        # self.__out_file.write("<classVarDec>\n")
 
+        # TODO: review implementation of "static"
         # static | field
         _token_kind = self.__current_token.text
         self.process(["static", "field"])
@@ -79,16 +84,17 @@ class CompilationEngine:
         # ';'
         self.process([";"])
 
-        self.__out_file.write("</classVarDec>\n")
+        # self.__out_file.write("</classVarDec>\n")
 
     def compile_subroutine_dec(self):
         # call SymbolTable subroutine symbol table init
         self.subroutine_symbol_table.reset()
 
         # ( 'constructor' | 'function' | 'method' ) ( 'void' | type) subroutineName '(' parameterList ')' subroutineBody
-        self.__out_file.write("<subroutineDec>\n")
+        # self.__out_file.write("<subroutineDec>\n")
 
         # ( 'constructor' | 'function' | 'method')
+        _is_constructor = self.__current_token.text == "constructor"
         self.process(['constructor', 'function', 'method'])
 
         # ( 'void' | type)
@@ -100,6 +106,8 @@ class CompilationEngine:
         )
 
         # subroutineName
+
+        self.subroutine_symbol_table.update_symbol_table_name(self.__current_token.text)
         self.process_terminal(
             token_types=["identifier"],
             attribs={"kind": Kind.ROUTINE, "type": _token_type, "status": IdentifierStatus.DEFINED})
@@ -108,22 +116,40 @@ class CompilationEngine:
         self.process(["("])
 
         # parameterList
-        self.subroutine_symbol_table.define("this", self.class_symbol_table.symbol_table_name(), Kind.ARG)
+        if not _is_constructor:
+            self.subroutine_symbol_table.define(Kind.THIS, self.class_symbol_table.table_name(), Kind.ARG)
         self.compile_parameter_list()
 
         # )
         self.process([")"])
 
+        # VMCode for function
+        self.vm_writer.write_function(
+            f"{self.class_symbol_table.table_name()}.{self.subroutine_symbol_table.table_name()}",
+            self.subroutine_symbol_table.var_count(Kind.ARG)
+        )
+        # VMCode for constructor
+        if _is_constructor:
+            self.vm_writer.write_push(Kind.CONST, self.class_symbol_table.var_count(Kind.FIELD))
+            self.vm_writer.write_call("Memory.alloc", 1)
+            self.vm_writer.write_pop(Kind.POINTER, 0)
+        else:
+            self.vm_writer.write_push(Kind.ARG, 0)
+            self.vm_writer.write_pop(Kind.POINTER, 0)
+
         # subroutineBody
         self.subroutine_body()
 
-        self.__out_file.write("</subroutineDec>\n")
+        # self.__out_file.write("</subroutineDec>\n")
+        if _token_type == "void":
+            self.vm_writer.write_push(Kind.CONST, 0)
+        self.vm_writer.write_return()
 
     def compile_parameter_list(self):
         # call symbol table subroutine
 
         # ((type varName) ( ',' type varName)*)?
-        self.__out_file.write("<parameterList>\n")
+        # self.__out_file.write("<parameterList>\n")
 
         if self.__current_token.text != ")":
             # (type varName)
@@ -163,11 +189,11 @@ class CompilationEngine:
                              "index": _var_name['index']}
                 )
 
-        self.__out_file.write("</parameterList>\n")
+        # self.__out_file.write("</parameterList>\n")
 
     def subroutine_body(self):
         # '{' varDec* statements '}'
-        self.__out_file.write("<subroutineBody>\n")
+        # self.__out_file.write("<subroutineBody>\n")
 
         # {
         self.process(["{"])
@@ -183,7 +209,7 @@ class CompilationEngine:
         # }
         self.process(["}"])
 
-        self.__out_file.write("</subroutineBody>\n")
+        # self.__out_file.write("</subroutineBody>\n")
         pass
 
     def compile_subroutine_call(self):
@@ -213,7 +239,7 @@ class CompilationEngine:
 
     def compile_var_dec(self):
         # 'var' type varName ( ',' varName)* ';'
-        self.__out_file.write("<varDec>\n")
+        # self.__out_file.write("<varDec>\n")
 
         # var
         self.process(["var"])
@@ -227,10 +253,10 @@ class CompilationEngine:
         )
 
         # varName
-        _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, Kind.VAR)
+        _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, Kind.LOCAL)
         self.process_terminal(
             token_types=["identifier"],
-            attribs={"kind": Kind.VAR,
+            attribs={"kind": Kind.LOCAL,
                      "status": IdentifierStatus.DEFINED,
                      "type": _token_type,
                      "index": _var_name['index']}
@@ -240,10 +266,10 @@ class CompilationEngine:
         while self.__current_token.text != ";":
             self.process([","])
 
-            _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, Kind.VAR)
+            _var_name = self.class_symbol_table.define(self.__current_token.text, _token_type, Kind.LOCAL)
             self.process_terminal(
                 token_types=["identifier"],
-                attribs={"kind": Kind.VAR,
+                attribs={"kind": Kind.LOCAL,
                          "status": IdentifierStatus.DEFINED,
                          "type": _token_type,
                          "index": _var_name['index']}
@@ -251,12 +277,12 @@ class CompilationEngine:
 
         self.process([";"])
 
-        self.__out_file.write("</varDec>\n")
+        # self.__out_file.write("</varDec>\n")
         pass
 
     def compile_statements(self):
         # statement *
-        self.__out_file.write("<statements>\n")
+        # self.__out_file.write("<statements>\n")
 
         while self.__current_token.text in ["if", "let", "while", "do", "return"]:
             if self.__current_token.text == "if":
@@ -270,7 +296,7 @@ class CompilationEngine:
             elif self.__current_token.text == "return":
                 self.compile_return()
 
-        self.__out_file.write("</statements>\n")
+        # self.__out_file.write("</statements>\n")
 
     def compile_expression_list(self):
         # (expression(',' expression) * )?
@@ -286,17 +312,21 @@ class CompilationEngine:
     # TODO: real implementation
     def compile_expression(self):
         # term (op term)*
-        self.__out_file.write("<expression>\n")
+        # self.__out_file.write("<expression>\n")
 
         # term
         self.compile_term()
 
         # (op term)*
         while self.__current_token.text in ['+', '-', '*', '/', '&', '|', '<', '>', '=']:
+            _arithmetic_op = self.__current_token.text
             self.process_terminal([], ['+', '-', '*', '/', '&', '|', '<', '>', '='])
             self.compile_term()
 
-        self.__out_file.write("</expression>\n")
+            # vm code
+            self.vm_writer.write_arithmetic(ARITHMETICS_OPS[_arithmetic_op])
+
+        # self.__out_file.write("</expression>\n")
         pass
 
     # TODO: real implementation
@@ -304,11 +334,16 @@ class CompilationEngine:
         # integerConstant | stringConstant | keywordConstant |
         # varName | varName '[' expression ']' | subroutineCall |
         # '(' expression ')' | unaryOp term
-        self.__out_file.write("<term>\n")
+        # self.__out_file.write("<term>\n")
 
         # integerConstant | stringConstant | keywordConstant
         if self.__current_token.tag in ["integerConstant", "stringConstant"]:
+            _token_text = self.__current_token.text
             self.process_terminal(["integerConstant", "stringConstant"])
+            if _token_text == "integerConstant":
+                self.vm_writer.write_push(Kind.CONST, _token_text)
+            # else:
+
 
         elif self.__current_token.tag == "keyword":
             self.process(['true', 'false', 'null', 'this'])
@@ -349,7 +384,7 @@ class CompilationEngine:
             elif self.__current_token.text in [".", "("]:
                 self.compile_subroutine_call()
 
-        self.__out_file.write("</term>\n")
+        # self.__out_file.write("</term>\n")
 
     def compile_let(self):
         # 'let' varName ( '[' expression ']' )? '=' expression ';'
@@ -392,7 +427,7 @@ class CompilationEngine:
     def compile_if(self):
         # 'if' '(' expression ')' '{' statements '}'
         # ( 'else' '{' statements '}' )?
-        self.__out_file.write("<ifStatement>\n")
+        # self.__out_file.write("<ifStatement>\n")
 
         # if
         self.process(["if"])
@@ -425,7 +460,7 @@ class CompilationEngine:
             # }
             self.process(["}"])
 
-        self.__out_file.write("</ifStatement>\n")
+        # self.__out_file.write("</ifStatement>\n")
 
     def compile_while(self):
         # 'while' '(' expression ')' '{' statements '}'
@@ -504,29 +539,28 @@ class CompilationEngine:
 
     def process(self, tokens: List[str]):
         if self.__current_token.text in tokens:
-            self.write_token(self.__current_token.tag, self.__current_token.text)
+            _, self.__current_token = next(self.__token_iterator)
+            # self.write_token(self.__current_token.tag, self.__current_token.text)
         else:
             raise SyntaxError(f"found token: {self.__current_token.text} instead of {''.join(tokens)} ")
-
-        _, self.__current_token = next(self.__token_iterator)
 
     # if identifier:
     # <identifier kind="KIND" index="0" status="DEFINED|USED">_the_identifier_</identifier>
     def process_terminal(self, token_types: List[str], token_values: List[str] = [], attribs=None):
         if self.__current_token.tag in token_types or self.__current_token.text in token_values:
-            self.write_token(
-                self.__current_token.tag,
-                self.__current_token.text,
-                '' if self.__current_token.tag != "identifier" else format_dict_to_str(attribs))
+            _, self.__current_token = next(self.__token_iterator)
+            # self.write_token(
+            #     self.__current_token.tag,
+            #     self.__current_token.text,
+            #     '' if self.__current_token.tag != "identifier" else format_dict_to_str(attribs))
         else:
             raise SyntaxError(
                 f"found token type: {self.__current_token.tag} and {self.__current_token.text} "
                 f"instead of {''.join(token_types)} or {''.join(token_values)}")
 
-        _, self.__current_token = next(self.__token_iterator)
-
     def write_token(self, token_type: str, token: str, attribs: str = ''):
         self.__out_file.write(f"<{token_type} {attribs}>{write_avoid_xml_conflicts(token)}</{token_type}>\n")
+        pass
 
     def close(self):
         self.__out_file.close()

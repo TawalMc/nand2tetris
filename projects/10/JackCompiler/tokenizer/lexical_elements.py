@@ -35,8 +35,26 @@ class Kind:
     ROUTINE = "subroutine"
     CLASS = "class"
     LOCAL = "local"
+    CONST = "constant"
+    THIS = "this"
+    THAT = "that"
+    POINTER = "pointer"
 
 
 class IdentifierStatus:
     DEFINED = 'defined'
     USED = "used"
+
+
+ARITHMETICS_OPS = {
+    "<": "lt",
+    ">": "gt",
+    "+": "add",
+    "-": "sub",
+    "=": "eq",
+    "&": "and",
+    "|": "or",
+    "~": "not",
+    "*": "Math.multiply",
+    "/": "Math.divide"
+}

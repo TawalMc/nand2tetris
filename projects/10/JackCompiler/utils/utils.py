@@ -29,3 +29,7 @@ def format_dict_to_str(value):
     for k, v in value.items():
         text += f" {k}='{v}'"
     return text
+
+def symbol_correspondance(symbol):
+
+    pass
