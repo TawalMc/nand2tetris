@@ -1,7 +1,7 @@
 # Comptuter architecture: Building a computer from scratch - Nand2Tetris
 The projects on this repo are from the course 
 [From Nand to Tetris
-Building a Modern Computer From First Principles](https://www.nand2tetris.org/). You can also find the free course on [Coursera](https://www.coursera.org/learn/build-a-computer/home/welcome).
+Building a Modern Computer From First Principles](https://www.nand2tetris.org/). You can also find the free course on [Coursera](https://www.coursera.org/learn/build-a-computer/home/welcome). I did it from **Octotber 2023** to **July 2024**.
 The course is divided into two main parts:
 ## Part 1: Hardware
 The projects for this part are from 0 to 7 
